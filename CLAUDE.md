@@ -66,12 +66,20 @@ Arquitetura de microsserviços com mensageria híbrida (Kafka para eventos de do
 
 ## Convenções de código
 
-- **Java**: pacotes por feature (não por camada), ex. `com.seatlock.order.{controller,service,repository,domain}`. DTOs separados de entidades JPA. Usar `record` para DTOs imutáveis.
+- **Java**: pacotes por feature (não por camada), ex. `com.ticketly.order.{controller,service,repository,domain}`. DTOs separados de entidades JPA. Usar `record` para DTOs imutáveis.
 - **REST**: rotas no plural (`/events`, `/orders`, `/tickets`), status HTTP semânticos, erros padronizados em `ProblemDetail` (RFC 7807). Autorização por perfil via `@PreAuthorize` (Spring Security).
 - **Eventos Kafka**: payload em JSON, versionado (`schema_version` no envelope), nome do tópico em kebab-case.
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`).
 - **Testes**: unitários com JUnit 5 + Mockito; integração com Testcontainers (Postgres, Redis, Kafka reais em container).
 - **Frontend**: componentes funcionais, hooks, TypeScript estrito, chamadas à API centralizadas em uma camada `services/`. Três áreas de rota: pública/usuário, painel do organizador, painel do admin.
+
+### Controle de versão (branches, commits e demandas)
+
+- Toda demanda de trabalho tem um código curto (ex.: `EV-001`, `EV-002`, ...) usado tanto no nome da branch quanto na mensagem de commit.
+- **Branch**: `EV-001-definicao-arquitetura` (código da demanda + slug descritivo em kebab-case).
+- **Commit**: código da demanda no início da mensagem, seguido do padrão Conventional Commits, ex.: `EV-001: chore: estrutura inicial do monorepo`.
+- **Sem trailer `Co-Authored-By` do Claude** nos commits deste repositório — o usuário deve aparecer como único autor/committer no GitHub.
+- Repositório remoto: https://github.com/DiogoLeonardoo/Ticketly (branch principal `main`, via SSH).
 
 ## Comandos úteis
 
@@ -94,10 +102,11 @@ kubectl apply -k k8s/overlays/local
 
 ## Plano de implementação
 
-### Fase 0 — Fundação (infra local)
-- [ ] Estrutura de monorepo (`/services/*`, `/frontend`, `/k8s`, `/docker`)
-- [ ] `docker-compose.yml` com Postgres, Redis, Kafka (modo KRaft), ActiveMQ, MinIO
-- [ ] Convenção de configuração (`application.yml` por perfil: `local`, `docker`, `k8s`)
+### Fase 0 — Fundação (infra local) — demanda `EV-001`
+- [x] Estrutura de monorepo (`/services/*`, `/frontend`, `/k8s`, `/docker`)
+- [x] `docker-compose.yml` com Postgres, Redis, Kafka (modo KRaft), ActiveMQ, MinIO
+- [x] Convenção de configuração (`application.yml` por perfil: `local`, `docker`, `k8s`)
+- [x] Subir a stack local (`docker compose up -d`) e validar healthchecks
 - [ ] Pipeline básico de CI (build + testes) — GitHub Actions
 
 ### Fase 1 — Identidade e perfis
