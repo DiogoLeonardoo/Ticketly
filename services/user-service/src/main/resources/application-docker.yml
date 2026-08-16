@@ -1,0 +1,12 @@
+# Perfil "docker": o próprio user-service roda como container dentro da
+# rede do docker-compose, então acessa a infra pelo nome do serviço
+# (resolução de DNS interna do Compose), não por "localhost".
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/user_db
+    username: ticketly
+    password: ticketly
+
+logging:
+  level:
+    com.ticketly: INFO

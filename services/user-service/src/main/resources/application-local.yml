@@ -1,0 +1,12 @@
+# Perfil "local": o serviço roda direto na sua máquina (./mvnw spring-boot:run),
+# fora do Docker. A infra (Postgres etc.) roda via docker-compose com portas
+# expostas no host, então o endereço é sempre "localhost".
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/user_db
+    username: ticketly
+    password: ticketly
+
+logging:
+  level:
+    com.ticketly: DEBUG
