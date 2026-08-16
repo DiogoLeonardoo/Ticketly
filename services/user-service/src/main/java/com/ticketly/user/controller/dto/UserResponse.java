@@ -5,9 +5,9 @@ import com.ticketly.user.domain.User;
 
 import java.util.UUID;
 
-public record UserResponse(UUID id, String email, String city, Role role) {
+public record UserResponse(UUID id, String name, String email, String city, Role role) {
 
     public static UserResponse from(User user) {
-        return new UserResponse(user.getId(), user.getEmail(), user.getCity(), user.getRole());
+        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getCity(), user.getRole());
     }
 }

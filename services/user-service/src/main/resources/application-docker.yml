@@ -7,6 +7,10 @@ spring:
     username: ticketly
     password: ticketly
 
+security:
+  jwt:
+    secret: "dev-only-docker-jwt-secret-nao-usar-em-producao-1234567890"
+
 logging:
   level:
     com.ticketly: INFO
