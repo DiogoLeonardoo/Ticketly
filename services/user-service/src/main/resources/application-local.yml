@@ -11,6 +11,11 @@ security:
   jwt:
     secret: "dev-only-local-jwt-secret-nao-usar-em-producao-1234567890"
 
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+
 logging:
   level:
     com.ticketly: DEBUG

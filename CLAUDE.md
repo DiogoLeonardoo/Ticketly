@@ -67,11 +67,12 @@ Arquitetura de microsserviços com mensageria híbrida (Kafka para eventos de do
 ## Convenções de código
 
 - **Java**: pacotes por feature (não por camada), ex. `com.ticketly.order.{controller,service,repository,domain}`. DTOs separados de entidades JPA. Usar `record` para DTOs imutáveis.
-- **REST**: rotas no plural (`/events`, `/orders`, `/tickets`), status HTTP semânticos, erros padronizados em `ProblemDetail` (RFC 7807). Autorização por perfil via `@PreAuthorize` (Spring Security).
+- **REST**: rotas no plural (`/events`, `/orders`, `/tickets`), status HTTP semânticos. Autorização por perfil via `@PreAuthorize` (Spring Security) ou filtro JWT próprio.
+- **Erros de API**: formato simples `{ "code": "ALGO_ERROR_CODE", "message": "texto legível" }` (não RFC 7807/`ProblemDetail`, decisão consciente de simplicidade). Mensagens vêm de `messages.properties` via `MessageSource` do Spring, resolvido por `Accept-Language` — ver `user-service/src/main/java/com/ticketly/user/exception/`. Cada erro de domínio é uma exceção que estende `ApiException` com um `ErrorCode` (enum: chave de mensagem + `HttpStatus`).
 - **Eventos Kafka**: payload em JSON, versionado (`schema_version` no envelope), nome do tópico em kebab-case.
 - **Commits**: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`).
 - **Testes**: unitários com JUnit 5 + Mockito; integração com Testcontainers (Postgres, Redis, Kafka reais em container).
-- **Frontend**: componentes funcionais, hooks, TypeScript estrito, chamadas à API centralizadas em uma camada `services/`. Três áreas de rota: pública/usuário, painel do organizador, painel do admin.
+- **Frontend**: componentes funcionais, hooks, TypeScript estrito, chamadas à API centralizadas em uma camada `services/` (a criar quando a primeira tela consumir a API). Três áreas de rota via `react-router-dom`: pública/usuário (`src/pages/public`), painel do organizador (`src/pages/organizer`), painel do admin (`src/pages/admin`) — cada uma com seu layout em `src/components/layout/`. Componentes de UI do shadcn ficam em `src/components/ui/` (gerados, não editar à mão — reinstalar via CLI); componentes de domínio (ex. `event-card.tsx`) em `src/components/<domínio>/`. Alias `@/*` aponta pra `src/*`.
 
 ### Controle de versão (branches, commits e demandas)
 
@@ -80,6 +81,52 @@ Arquitetura de microsserviços com mensageria híbrida (Kafka para eventos de do
 - **Commit**: código da demanda no início da mensagem, seguido do padrão Conventional Commits, ex.: `EV-001: chore: estrutura inicial do monorepo`.
 - **Sem trailer `Co-Authored-By` do Claude** nos commits deste repositório — o usuário deve aparecer como único autor/committer no GitHub.
 - Repositório remoto: https://github.com/DiogoLeonardoo/Ticketly (branch principal `main`, via SSH).
+
+## Frontend — stack e design system
+
+Iniciado na demanda `EV-002` (junto com identidade/perfis), como base pra todas as fases seguintes de UI.
+
+### Stack
+
+- Vite + React 18 + TypeScript, Tailwind CSS v4 (via plugin `@tailwindcss/vite`, sem `tailwind.config.js` — configuração em `src/index.css`), shadcn/ui (base `radix`, preset `nova`, componentes gerados em `src/components/ui/`), `react-router-dom` pra as 3 áreas de rota.
+- `frontend/components.json` é a config do shadcn CLI — usar `npx shadcn@latest add <componente>` pra trazer novos componentes, nunca copiar manualmente.
+
+### Paleta de cores
+
+Decisão de identidade visual: verde escuro (tom "ingresso premium/teatro") + dourado como acento de CTA. Implementada como CSS custom properties em `frontend/src/index.css` (claro e escuro), mapeadas nos tokens do shadcn:
+
+| Token shadcn | Uso | Cor (claro) |
+|---|---|---|
+| `--primary` | Botões de ação principal (comprar ingresso, confirmar, submit) | Dourado `#c9a227` |
+| `--sidebar` / `--sidebar-*` | Fundo da navegação nos painéis de organizador e admin (não usado na área pública) | Verde floresta `#0f3d2e` |
+| `--secondary-foreground` | Texto de marca (logo "Ticketly", títulos de destaque) na área pública | Verde floresta `#0f3d2e` |
+| `--success` / `--success-foreground` | Estados semânticos de sucesso (pedido confirmado, pagamento aprovado) | Verde `#16a34a` — **de propósito diferente** do verde de marca, pra não confundir "isto é a marca" com "isto é uma confirmação" |
+| `--background`, `--muted`, `--border` | Neutros da área pública | Tons quentes (não cinza puro), ex. `#f7f5ef` |
+
+Modo escuro replica a mesma lógica com tons ajustados (ver bloco `.dark` em `index.css`). Cores de `--chart-*` ficaram no padrão neutro do preset — decisão de paleta de gráficos fica pra quando o `dashboard-service` (Fase 7) existir de fato.
+
+### Estrutura de pastas
+
+```
+frontend/src/
+├── components/
+│   ├── ui/          # gerado pelo shadcn CLI — não editar à mão
+│   ├── layout/       # PublicLayout+Navbar (área pública), DashboardLayout (organizer/admin, usa --sidebar)
+│   └── <domínio>/    # ex. events/event-card.tsx
+├── pages/
+│   ├── public/        # rota pública/usuário
+│   ├── organizer/     # painel do organizador
+│   └── admin/         # painel do admin
+└── services/          # camada de chamadas à API (criar por feature, ex. auth-service.ts)
+```
+
+### Skills de design instaladas (via `npx skills add`, não versionadas — ver `.gitignore`)
+
+Pacotes de terceiros que seguem o padrão aberto Agent Skills, instalados em `.claude/skills/` (ignorado no git — cada dev que quiser usar roda o `npx skills add` de novo):
+
+- **`mattbx/shadcn-skills`** → `shadcn-component-discovery` (busca componentes prontos no ecossistema shadcn antes de construir do zero — usada pra achar `navigation-menu`/`card` na Fase EV-002) e `shadcn-component-review` (audita componentes custom contra os padrões shadcn).
+- **`emilkowalski/skill`** → pacote de design engineering (animações, polish de UI): `animate`, `review-animations`, `improve-animations`, `find-animation-opportunities`, `animation-vocabulary`, `apple-design`, `ask-sonner`, `emil-design-eng`, `pick-ui-library`, `prototype`. Relevantes principalmente a partir da Fase 8 (frontend completo), quando o app tiver interações reais pra animar/revisar.
+- **`pbakaus/impeccable`** (`npx impeccable install`) → detector de qualidade de design; registra hooks em `.claude/settings.local.json` que rodam depois de toda edição de arquivo de UI (`PostToolUse`) e no fim de cada resposta (`Stop`), via `.claude/skills/impeccable/scripts/hook.mjs`. Rodar `/impeccable init` (dentro do chat) quando o frontend tiver mais conteúdo, pra gerar o `PRODUCT.md` de contexto de design.
 
 ## Comandos úteis
 
@@ -109,10 +156,11 @@ kubectl apply -k k8s/overlays/local
 - [x] Subir a stack local (`docker compose up -d`) e validar healthchecks
 - [ ] Pipeline básico de CI (build + testes) — GitHub Actions
 
-### Fase 1 — Identidade e perfis
-- [ ] `user-service`: cadastro, login, JWT, campo de cidade, perfis `USER`/`ORGANIZER`/`ADMIN`
-- [ ] `api-gateway`: roteamento + validação de JWT e checagem de perfil por rota
-- [ ] Frontend: login/cadastro, seleção de perfil no cadastro (usuário vs. organizador)
+### Fase 1 — Identidade e perfis — demanda `EV-002`
+- [x] `user-service`: cadastro (`POST /auth/register`), login com JWT (`POST /auth/login`), campo de cidade, perfis `USER`/`ORGANIZER`/`ADMIN` (cadastro de `ADMIN` bloqueado via API), testes unitários (`AuthServiceTest`, `JwtServiceTest`)
+- [x] Frontend: scaffold Vite + React + TS, Tailwind + shadcn/ui, design system (paleta verde/dourado), roteamento das 3 áreas com layouts — ver seção "Frontend — stack e design system"
+- [ ] Frontend: telas de login/cadastro de fato (formulário conectado à API, seleção de perfil usuário vs. organizador)
+- [ ] `api-gateway`: retirado do escopo da `EV-002` — vira demanda própria mais adiante (roteamento + validação de JWT + checagem de perfil por rota)
 
 ### Fase 2 — Eventos e aprovação
 - [ ] `event-service`: CRUD de evento (dados básicos + capacidade + cidade)

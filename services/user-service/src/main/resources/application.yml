@@ -14,6 +14,10 @@ security:
   jwt:
     expiration-minutes: 60
 
+app:
+  cors:
+    allowed-origins: []
+
 server:
   port: 8081
 

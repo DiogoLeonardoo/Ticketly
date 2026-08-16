@@ -25,3 +25,10 @@ docker/volumes/
 
 # Logs
 *.log
+
+# Skills / agentes de IA (locais, não versionados)
+.claude/
+.agents/
+.codex/
+.impeccable/
+skills-lock.json
